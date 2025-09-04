@@ -1,12 +1,15 @@
-// app/robots.ts
-import { MetadataRoute } from 'next';
+// app/sitemap.ts
+import type { MetadataRoute } from 'next'
 
-export default function robots(): MetadataRoute.Robots {
-  return {
-    rules: {
-      userAgent: '*',
-      allow: '/',
+export default function sitemap(): MetadataRoute.Sitemap {
+  const base = 'https://www.scanqrly.xyz'
+
+  return [
+    {
+      url: `${base}/`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 1.0,
     },
-    sitemap: 'https://www.scanqrly.xyz/sitemap.xml',
-  };
+  ]
 }
