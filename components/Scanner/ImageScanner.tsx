@@ -115,11 +115,11 @@ export default function ImageScanner({ onDecoded, onError, className }: ImageSca
         </p>
 
         <label className="inline-block cursor-pointer">
+          {/* NOTE: Do NOT add `capture` here. On iOS/Android it forces camera-only UI and hides photo library. */}
           <input
             ref={inputRef}
             type="file"
-            accept="image/*"
-            capture="environment"  // hint: mobile can open rear camera
+            accept="image/*,.png,.jpg,.jpeg,.webp"
             className="hidden"
             onChange={onInputChange}
           />
