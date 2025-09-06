@@ -79,15 +79,87 @@ async function fileToCanvas(file: File): Promise<HTMLCanvasElement> {
   return canvas;
 }
 
-/** 尝试调用你库里可能暴露的各种解码方法（哪个能用就用哪个） */
-async function decodeWithLib(source: any): Promise<string | undefined> {
-  const anyQr = qr as any;
-  if (!anyQr) return undefined;
-  if (typeof anyQr.decodeImageBitmap === 'function') return anyQr.decodeImageBitmap(source);
-  if (typeof anyQr.decodeFromCanvas === 'function') return anyQr.decodeFromCanvas(source);
-  if (typeof anyQr.decodeImage === 'function') return anyQr.decodeImage(source);
-  if (typeof anyQr.decodeFromImage === 'function') return anyQr.decodeFromImage(source);
-  if (typeof anyQr.decode === 'function') return anyQr.decode(source);
+/**
+ * 尝试各种常见库的解码签名。
+ * 兼容返回 string | { text?: string; data?: string } | { rawValue?: string }
+ */
+async function decodeWithLib(
+  source: HTMLCanvasElement | ImageBitmap | HTMLImageElement,
+  imageData?: ImageData
+): Promise<string | undefined> {
+  const lib: any = qr as any;
+  if (!lib) return undefined;
+
+  const pick = (res: any): string | undefined => {
+    if (!res) return undefined;
+    if (typeof res === 'string') return res;
+    if (typeof res?.text === 'string') return res.text;
+    if (typeof res?.data === 'string') return res.data;
+    if (typeof res?.rawValue === 'string') return res.rawValue;
+    // 某些库 resolve 在 { value: 'xxx' }、{ result: 'xxx' }
+    if (typeof res?.value === 'string') return res.value;
+    if (typeof res?.result === 'string') return res.result;
+    return undefined;
+  };
+
+  // 1) 直接喂 Canvas/Image/Bitmap 的常见方法
+  const fns1 = [
+    'decodeFromCanvas',
+    'decodeCanvas',
+    'decodeImageBitmap',
+    'decodeFromImage',
+    'decodeImage',
+    'decode', // 有些库接受 Canvas/Image 作为唯一参数
+    'read',
+  ];
+  for (const name of fns1) {
+    if (typeof lib[name] === 'function') {
+      try {
+        const out = await lib[name](source);
+        const text = pick(out);
+        if (text) return text;
+      } catch {/* ignore */}
+    }
+  }
+
+  // 2) ImageData 路线（很多纯 JS 解码器使用）
+  if (!imageData && source instanceof HTMLCanvasElement) {
+    const ctx = source.getContext('2d');
+    if (ctx) imageData = ctx.getImageData(0, 0, source.width, source.height);
+  }
+  if (imageData) {
+    const { data, width, height } = imageData;
+    const fns2 = [
+      // 形如 decodeImageData(imageData)
+      (libFn: any) => libFn(imageData),
+      // 形如 decode(data, width, height)
+      (libFn: any) => libFn(data, width, height),
+      // 形如 scan(data, width, height)
+      (libFn: any) => libFn(data, width, height),
+    ];
+    const names2 = [
+      'decodeImageData',
+      'decodeFromImageData',
+      'decodeRGBA',
+      'decodeUint8ClampedArray',
+      'scanImageData',
+      'scan',
+      'decode',
+      'read',
+    ];
+    for (const name of names2) {
+      if (typeof lib[name] === 'function') {
+        for (const invoke of fns2) {
+          try {
+            const out = await invoke(lib[name]);
+            const text = pick(out);
+            if (text) return text;
+          } catch {/* ignore */}
+        }
+      }
+    }
+  }
+
   return undefined;
 }
 
@@ -132,8 +204,10 @@ export default function ImageScanner({ onDecoded, onError, className }: ImageSca
         // 2) 再走 Canvas 路径（iOS/Android/桌面通吃、最稳）
         if (!decoded) {
           const canvas = await fileToCanvas(file);
+          const ctx = canvas.getContext('2d');
+          const imgData = ctx ? ctx.getImageData(0, 0, canvas.width, canvas.height) : undefined;
           decoded =
-            (await decodeWithLib(canvas)) ||
+            (await decodeWithLib(canvas, imgData)) ||
             (await decodeWithBarcodeDetector(canvas));
         }
 
