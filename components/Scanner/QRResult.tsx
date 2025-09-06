@@ -5,35 +5,48 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Copy, ExternalLink, RotateCcw, Check } from 'lucide-react';
-import { ScanResult } from '@/types/scan'; // <-- 改为从 types 导入
+
+// 轻量本地类型，避免强依赖外部 types
+export type ScanResultLike = {
+  text: string;
+  timestamp?: Date | string;
+};
 
 interface QRResultProps {
-  result: ScanResult;
+  /** 新推荐：传对象 { text, timestamp } */
+  result?: ScanResultLike;
+  /** 兼容旧用法：直接传字符串 */
+  value?: string;
   onScanAgain: () => void;
 }
 
-export function QRResult({ result, onScanAgain }: QRResultProps) {
+export function QRResult({ result, value, onScanAgain }: QRResultProps) {
   const [copied, setCopied] = useState(false);
 
-  const isUrl = (text: string) => {
+  const text = (result?.text ?? value ?? '').trim();
+  const tsRaw = result?.timestamp;
+  const ts = tsRaw ? new Date(tsRaw) : new Date();
+
+  const isUrl = (input: string) => {
+    const s = input.trim();
+    if (!s) return false;
     try {
-      new URL(text);
+      new URL(s);
       return true;
     } catch {
-      return text.startsWith('http://') || text.startsWith('https://');
+      return s.startsWith('http://') || s.startsWith('https://');
     }
   };
 
   const copyToClipboard = async () => {
     try {
-      await navigator.clipboard.writeText(result.text);
+      await navigator.clipboard.writeText(text);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      // Fallback for older browsers
+      // Fallback for older浏览器
       const textArea = document.createElement('textarea');
-      textArea.value = result.text;
-      // 防止页面跳动
+      textArea.value = text;
       textArea.style.position = 'fixed';
       textArea.style.left = '-9999px';
       document.body.appendChild(textArea);
@@ -44,7 +57,6 @@ export function QRResult({ result, onScanAgain }: QRResultProps) {
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       } catch (_e) {
-        // 最后兜底：提示用户手动复制（可根据需要替换为 UI 提示）
         console.warn('Copy to clipboard failed', _e);
       }
       document.body.removeChild(textArea);
@@ -52,10 +64,12 @@ export function QRResult({ result, onScanAgain }: QRResultProps) {
   };
 
   const openLink = () => {
-    if (isUrl(result.text)) {
-      window.open(result.text, '_blank', 'noopener,noreferrer');
+    if (isUrl(text)) {
+      window.open(text, '_blank', 'noopener,noreferrer');
     }
   };
+
+  if (!text) return null;
 
   return (
     <div className="space-y-6">
@@ -71,7 +85,7 @@ export function QRResult({ result, onScanAgain }: QRResultProps) {
           <CardTitle className="flex items-center justify-between">
             <span>Scan Result</span>
             <span className="text-sm font-normal text-gray-500">
-              {result.timestamp.toLocaleTimeString()}
+              {ts.toLocaleTimeString?.() ?? ''}
             </span>
           </CardTitle>
         </CardHeader>
@@ -79,7 +93,7 @@ export function QRResult({ result, onScanAgain }: QRResultProps) {
           <div className="bg-gray-50 p-4 rounded-lg">
             <p className="text-sm text-gray-600 mb-2">Decoded Content:</p>
             <p className="font-mono text-sm break-all whitespace-pre-wrap border p-3 rounded bg-white">
-              {result.text}
+              {text}
             </p>
           </div>
 
@@ -98,7 +112,7 @@ export function QRResult({ result, onScanAgain }: QRResultProps) {
               )}
             </Button>
 
-            {isUrl(result.text) && (
+            {isUrl(text) && (
               <Button onClick={openLink} className="flex-1">
                 <ExternalLink className="mr-2 w-4 h-4" />
                 Open Link

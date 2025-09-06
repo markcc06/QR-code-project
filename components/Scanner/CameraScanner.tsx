@@ -1,216 +1,162 @@
+
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
-
-interface CameraScannerProps {
-  onResult: (text: string) => void;
-  isActive?: boolean;
+// TS shim for optional BarcodeDetector on Window
+declare global {
+  interface Window {
+    BarcodeDetector?: any;
+  }
 }
 
-export function CameraScanner({ onResult, isActive = false }: CameraScannerProps) {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
+import React, { useEffect, useRef, useState } from 'react';
+import { toast } from '@/hooks/use-toast'; // 用你现成的 toast（非必须，也可换成 console）
+// 如果你的路径不同，把上面这行路径改成实际路径
+
+type Props = {
+  onDecoded: (text: string) => void;
+  onError?: (msg: string) => void;
+  className?: string;
+};
+
+export default function CameraScanner({ onDecoded, onError, className }: Props) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const rafRef = useRef<number>();
   const streamRef = useRef<MediaStream | null>(null);
-  const rafRef = useRef<number | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const detectorRef = useRef<any>(null);
+  const [ready, setReady] = useState(false);
+  const [usingBarcodeDetector, setUsingBarcodeDetector] = useState(false);
 
-  const [started, setStarted] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!canvasRef.current) canvasRef.current = document.createElement('canvas');
-  }, []);
-
-  // Stop camera when tab becomes inactive or component unmounts / isActive false
-  useEffect(() => {
-    if (!isActive) {
-      stopCamera();
-      setStarted(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isActive]);
-
-  useEffect(() => {
-    // If user navigates away, stop
-    const onVisibility = () => {
-      if (document.hidden) {
-        stopCamera();
-        setStarted(false);
-      }
-    };
-    document.addEventListener('visibilitychange', onVisibility);
-    return () => {
-      document.removeEventListener('visibilitychange', onVisibility);
-      stopCamera();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  async function startCamera() {
-    setError(null);
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      setError('Camera API not supported in this browser.');
-      return;
-    }
-
-    try {
-      // Request environment-facing camera where available
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' },
-        audio: false,
-      });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        // Ensure playsInline + muted to allow autoplay
-        videoRef.current.muted = true;
-        await videoRef.current.play().catch((e) => {
-          // play can be blocked until user gesture; ignore here
-          console.warn('video.play() blocked', e);
-        });
-      }
-
-      // Initialize BarcodeDetector if supported
-      if ((window as any).BarcodeDetector) {
-        try {
-          detectorRef.current = new (window as any).BarcodeDetector({ formats: ['qr_code'] });
-        } catch (_e) {
-          detectorRef.current = null;
-        }
-      } else {
-        detectorRef.current = null;
-      }
-
-      setStarted(true);
-      scanLoop();
-    } catch (err: any) {
-      console.error('getUserMedia error', err);
-      setError(err?.message || String(err));
-      setStarted(false);
-    }
-  }
-
-  function stopCamera() {
-    if (rafRef.current) {
-      cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
-    }
-    const s = streamRef.current;
-    if (s) {
-      s.getTracks().forEach((t) => t.stop());
+  // 清理
+  const stop = () => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
       streamRef.current = null;
     }
-    if (videoRef.current) {
+  };
+
+  useEffect(() => {
+    (async () => {
       try {
-        videoRef.current.pause();
-        // @ts-ignore
-        videoRef.current.srcObject = null;
-      } catch (e) {
-        // ignore
-      }
-    }
-    setStarted(false);
-  }
+        // 调起摄像头（优先后置）
+        const constraints: MediaStreamConstraints = {
+          video: {
+            facingMode: { ideal: 'environment' },
+            // 限制分辨率，降低功耗 + 提升解码速度
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+          audio: false,
+        };
 
-  async function scanLoop() {
-    // Capture refs into local non-null vars to satisfy TypeScript across awaits
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    if (!video || !canvas) return;
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        streamRef.current = stream;
 
-    const v = video as HTMLVideoElement;
-    const c = canvas as HTMLCanvasElement;
-    // 明确告诉 TypeScript 这里的 ctx 非空
-    const ctx = c.getContext('2d')! as CanvasRenderingContext2D;
-    if (!ctx) return;
+        const video = videoRef.current!;
+        video.srcObject = stream;
 
-    async function frame() {
-      try {
-        const w = v.videoWidth;
-        const h = v.videoHeight;
-        if (w && h) {
-          c.width = w;
-          c.height = h;
-          ctx.drawImage(v, 0, 0, w, h);
+        // iOS Safari 必须要 inline + 静音自动播放
+        video.playsInline = true;
+        video.setAttribute('playsinline', 'true'); // iOS Safari inline playback
+        video.muted = true;
 
-          if (detectorRef.current) {
+        await video.play();
+        setReady(true);
+
+        // BarcodeDetector 可用？（部分浏览器支持）
+        const BD = (window as any).BarcodeDetector as any | undefined;
+        let detector: any = null;
+
+        if (BD && (await BD.getSupportedFormats()).includes('qr_code')) {
+          detector = new BD({ formats: ['qr_code'] });
+          setUsingBarcodeDetector(true);
+        } else {
+          // 动态加载 jsQR 作为兜底
+          setUsingBarcodeDetector(false);
+        }
+
+        const tick = async () => {
+          const v = videoRef.current!;
+          const c = canvasRef.current!;
+          if (!v || !c) return;
+
+          // 同步尺寸
+          if (v.videoWidth && v.videoHeight) {
+            c.width = v.videoWidth;
+            c.height = v.videoHeight;
+          }
+
+          const ctx = c.getContext('2d', { willReadFrequently: true });
+          if (ctx && c.width && c.height) {
+            ctx.drawImage(v, 0, 0, c.width, c.height);
+
             try {
-              // use the captured non-null canvas
-              const bitmap = await createImageBitmap(c);
-              const barcodes = await detectorRef.current.detect(bitmap);
-              bitmap.close();
-              if (barcodes && barcodes.length > 0) {
-                const value = (barcodes[0] as any).rawValue || '';
-                if (value) {
-                  onResult(value);
-                  stopCamera();
+              if (detector) {
+                // BarcodeDetector 路径
+                const barcodes = await detector.detect(c);
+                if (barcodes?.length) {
+                  const raw = barcodes[0].rawValue || '';
+                  if (raw) {
+                    onDecoded(raw);
+                    return; // 命中一次就结束扫描
+                  }
+                }
+              } else {
+                // jsQR 路径
+                const { default: jsQR } = await import('jsqr'); // 懒加载
+                const imageData = ctx.getImageData(0, 0, c.width, c.height);
+                const result = jsQR(imageData.data, c.width, c.height, {
+                  inversionAttempts: 'dontInvert',
+                });
+                if (result?.data) {
+                  onDecoded(result.data);
                   return;
                 }
               }
-            } catch (e) {
-              console.error('BarcodeDetector detect error', e);
+            } catch (err: any) {
+              onError?.(err?.message || 'Decode error');
             }
-          } else {
-            // No native detector: we do not bundle jsQR by default.
-            // If you want a JS fallback, install jsqr and decode here.
           }
-        }
-      } catch (e) {
-        console.error('scanLoop error', e);
+
+          rafRef.current = requestAnimationFrame(tick);
+        };
+
+        rafRef.current = requestAnimationFrame(tick);
+      } catch (err: any) {
+        const msg =
+          err?.name === 'NotAllowedError'
+            ? '相机权限被拒绝，请在浏览器设置中允许访问摄像头。'
+            : '无法打开摄像头：' + (err?.message || '');
+        onError?.(msg);
+        try { toast({ title: 'Camera Error', description: msg }); } catch {}
       }
-      rafRef.current = requestAnimationFrame(frame);
-    }
+    })();
 
-    frame();
-  }
-
-  // Expose a console-friendly indicator to help debugging user-gesture issues
-  useEffect(() => {
-    if (isActive && !started) {
-      // show UI to ask user to click start; do not auto-call startCamera to avoid autoplay block
-      console.info('Camera tab active. Click "Start Camera" to enable camera (user gesture required in some browsers).');
-    }
-  }, [isActive, started]);
+    return () => stop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
-    <div className="space-y-3">
-      <div className="relative rounded bg-black overflow-hidden" style={{ height: 360 }}>
+    <div className={className}>
+      <div className="relative w-full overflow-hidden rounded-xl">
         <video
           ref={videoRef}
-          className="w-full h-full object-cover"
+          className="block w-full h-auto"
+          // 低端机更稳
+          preload="metadata"
+          // @ts-ignore
           playsInline
-          muted
         />
-        <canvas ref={canvasRef} style={{ display: 'none' }} />
-        {!started && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <button
-              onClick={() => {
-                console.log('Start Camera clicked');
-                startCamera();
-              }}
-              className="bg-white/90 text-gray-800 px-4 py-2 rounded-md shadow"
-            >
-              Start Camera
-            </button>
+        {!ready && (
+          <div className="absolute inset-0 grid place-items-center text-sm text-muted-foreground">
+            正在启动相机…
           </div>
         )}
       </div>
-
-      <div className="flex items-center gap-3">
-        {started && (
-          <button
-            onClick={() => {
-              stopCamera();
-            }}
-            className="px-3 py-1 bg-red-50 text-red-700 rounded"
-          >
-            Stop Camera
-          </button>
-        )}
-        {error && <div className="text-sm text-red-600">Error: {error}</div>}
-        {!error && !started && <div className="text-sm text-gray-600">Click &quot;Start&quot; to begin</div>}
-      </div>
+      <canvas ref={canvasRef} className="hidden" />
+      <p className="mt-2 text-xs text-muted-foreground">
+        {usingBarcodeDetector ? 'Using BarcodeDetector' : 'Using jsQR fallback'}
+      </p>
     </div>
   );
 }

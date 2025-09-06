@@ -1,148 +1,135 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { decodeImageFile } from '@/lib/qr/decode';
-import { Upload, Image as ImageIcon, AlertCircle, Loader2 } from 'lucide-react';
+import React, { useCallback, useRef, useState } from 'react';
+import * as qr from '@/lib/qr/decode';
 
-interface ImageScannerProps {
-  onResult: (text: string) => void;
+// Minimal shims so TS doesn't complain when BarcodeDetector isn't present
+declare const BarcodeDetector: any | undefined;
+
+type ImageScannerProps = {
+  onDecoded: (text: string) => void;
+  onError?: (err: unknown) => void;
+  className?: string;
+};
+
+// Helper: turn File → HTMLImageElement (fallback path when createImageBitmap is missing)
+async function fileToImage(file: File): Promise<HTMLImageElement> {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = new Image();
+    img.decoding = 'async';
+    img.src = url;
+    await img.decode();
+    return img;
+  } finally {
+    // Delay revoke to give the browser time to read
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
 }
 
-export function ImageScanner({ onResult }: ImageScannerProps) {
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState<string>('');
-  const [dragActive, setDragActive] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+export default function ImageScanner({ onDecoded, onError, className }: ImageScannerProps) {
+  const [loading, setLoading] = useState(false);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
-  const processFile = async (file: File) => {
-    setIsProcessing(true);
-    setError('');
+  const decodeWithLib = async (source: any): Promise<string | undefined> => {
+    // Try a few likely exported helpers from lib/qr/decode to最大程度兼容
+    const anyQr = qr as any;
+    if (anyQr) {
+      if (typeof anyQr.decodeImageBitmap === 'function') return anyQr.decodeImageBitmap(source);
+      if (typeof anyQr.decodeImage === 'function') return anyQr.decodeImage(source);
+      if (typeof anyQr.decode === 'function') return anyQr.decode(source);
+      if (typeof anyQr.decodeFromImage === 'function') return anyQr.decodeFromImage(source);
+      if (typeof anyQr.decodeFromCanvas === 'function') return anyQr.decodeFromCanvas(source);
+    }
+    return undefined;
+  };
 
+  const decodeWithBarcodeDetector = async (source: any): Promise<string | undefined> => {
     try {
-      const result = await decodeImageFile(file);
-      if (result) {
-        onResult(result);
-      } else {
-        // 可选：展示提示或调用 onError 回调
-        // setError('No QR code found in the image.');
+      if (typeof BarcodeDetector === 'undefined') return undefined;
+      const detector = new BarcodeDetector({ formats: ['qr_code'] });
+      const results = await detector.detect(source as any);
+      if (results && results.length > 0) {
+        return results[0].rawValue as string;
       }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to decode QR code from image';
-      setError(errorMessage);
+      return undefined;
+    } catch {
+      return undefined;
+    }
+  };
+
+  const handleFiles = useCallback(async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const file = files[0];
+    setLoading(true);
+    try {
+      // Prefer ImageBitmap when available
+      let decoded: string | undefined;
+      if ('createImageBitmap' in window) {
+        const bitmap = await createImageBitmap(file);
+        decoded = await decodeWithLib(bitmap);
+        if (!decoded) decoded = await decodeWithBarcodeDetector(bitmap);
+      } else {
+        // Fallback: use HTMLImageElement (works on older Safari)
+        const img = await fileToImage(file);
+        decoded = await decodeWithLib(img);
+        if (!decoded) decoded = await decodeWithBarcodeDetector(img);
+      }
+
+      if (!decoded) {
+        throw new Error('No QR code found in the image.');
+      }
+
+      onDecoded(decoded); // ✅ 把结果抛给父组件，父组件切到 <QRResult/>
+    } catch (e) {
+      onError?.(e);
     } finally {
-      setIsProcessing(false);
+      setLoading(false);
+      // 允许用户选择同一张图片再次上传
+      if (inputRef.current) inputRef.current.value = '';
     }
+  }, [onDecoded, onError]);
+
+  const onInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    void handleFiles(e.target.files);
   };
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      processFile(file);
-    }
-  };
-
-  const handleDragEnter = (e: React.DragEvent) => {
+  const onDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    e.stopPropagation();
-    setDragActive(true);
+    void handleFiles(e.dataTransfer.files);
   };
 
-  const handleDragLeave = (e: React.DragEvent) => {
+  const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
   };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-
-    const file = e.dataTransfer.files?.[0];
-    if (file && file.type.startsWith('image/')) {
-      processFile(file);
-    } else {
-      setError('Please drop a valid image file (JPG, PNG, WebP)');
-    }
-  };
-
-  const handleButtonClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  if (isProcessing) {
-    return (
-      <div className="text-center py-12">
-        <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-        <h3 className="text-lg font-semibold mb-2">Processing Image</h3>
-        <p className="text-gray-600">
-          Scanning your image for QR codes...
-        </p>
-      </div>
-    );
-  }
 
   return (
-    <div className="space-y-4">
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
+    <div className={className}>
       <div
-        className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-          dragActive
-            ? 'border-blue-500 bg-blue-50'
-            : 'border-gray-300 hover:border-gray-400'
-        }`}
-        onDragEnter={handleDragEnter}
-        onDragLeave={handleDragLeave}
-        onDragOver={handleDragOver}
-        onDrop={handleDrop}
+        onDrop={onDrop}
+        onDragOver={onDragOver}
+        className="rounded-lg border border-dashed p-8 text-center"
       >
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleFileSelect}
-          className="hidden"
-        />
+        <p className="mb-4 text-sm text-muted-foreground">
+          Drag & drop an image here, or click to select
+        </p>
 
-        <div className="space-y-4">
-          <div className="bg-gray-100 p-4 rounded-full w-fit mx-auto">
-            <ImageIcon className="w-12 h-12 text-gray-600" />
-          </div>
+        <label className="inline-block cursor-pointer">
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"  // hint: mobile can open rear camera
+            className="hidden"
+            onChange={onInputChange}
+          />
+          <span className="rounded-md border px-4 py-2 text-sm">
+            {loading ? 'Decoding…' : 'Choose File'}
+          </span>
+        </label>
 
-          <div>
-            <h3 className="text-lg font-semibold mb-2">Upload QR Code Image</h3>
-            <p className="text-gray-600 mb-4">
-              Drag and drop an image file here, or click to select
-            </p>
-          </div>
-
-          <Button onClick={handleButtonClick} variant="outline" size="lg">
-            <Upload className="mr-2 w-5 h-5" />
-            Choose File
-          </Button>
-
-          <p className="text-sm text-gray-500">
-            Supports JPG, PNG, and WebP formats
-          </p>
-        </div>
-      </div>
-
-      <div className="text-center">
-        <p className="text-xs text-gray-500">
-          💡 Tip: For best results, use clear, high-contrast images with the QR code clearly visible
+        <p className="mt-3 text-xs text-muted-foreground">
+          Supports JPG, PNG, WebP
         </p>
       </div>
     </div>

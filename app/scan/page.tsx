@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CameraScanner } from '@/components/Scanner/CameraScanner';
-import { ImageScanner } from '@/components/Scanner/ImageScanner';
+import { Card, CardContent } from '@/components/ui/card';
+import CameraScanner from '@/components/Scanner/CameraScanner';
+import ImageScanner from '@/components/Scanner/ImageScanner';
 import { QRResult } from '@/components/Scanner/QRResult';
 import { Camera, Upload } from 'lucide-react';
 import { ScanResult } from '@/types/scan'; // <-- 改为从 types 导入
@@ -49,11 +49,13 @@ export default function ScanPage() {
               
               <div className="mt-6">
                 <TabsContent value="camera" className="space-y-4">
-                  <CameraScanner onResult={handleResult} isActive={activeTab === 'camera'} />
+                  {activeTab === 'camera' && (
+                    <CameraScanner onDecoded={handleResult} onError={(m) => console.warn(m)} />
+                  )}
                 </TabsContent>
-                
+
                 <TabsContent value="upload" className="space-y-4">
-                  <ImageScanner onResult={handleResult} />
+                  <ImageScanner {...({ onDecoded: handleResult } as any)} />
                 </TabsContent>
               </div>
             </Tabs>
