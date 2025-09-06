@@ -106,10 +106,17 @@ export default function ScannerPanel({
       <div className="relative">
         {mode === 'camera' ? (
           <CameraScanner
-            {...({ onResult: handleDecoded, onError: handleError, isActive: mode === 'camera' } as any)}
+            {...({
+              isActive: mode === 'camera',
+              // 同时传递 onDecoded 与 onResult，兼容旧/新实现
+              onDecoded: handleDecoded,
+              onResult: handleDecoded,
+              onError: handleError,
+            } as any)}
           />
         ) : (
-          <ImageScanner {...({ onResult: handleDecoded, onError: handleError } as any)} />
+          // ImageScanner 现实现期望 onDecoded
+          <ImageScanner onDecoded={handleDecoded} onError={handleError} />
         )}
       </div>
     </div>

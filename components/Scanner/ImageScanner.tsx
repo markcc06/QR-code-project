@@ -189,8 +189,21 @@ export default function ImageScanner({ onDecoded, onError, className }: ImageSca
       try {
         let decoded: string | undefined;
 
-        // 1) 优先走 ImageBitmap（新浏览器快）
-        if ('createImageBitmap' in window) {
+        // 0) 优先走项目内置的上传解码函数（原来这条在移动端最稳定）
+        try {
+          const maybeDecodeFile = (qr as any)?.decodeFile;
+          if (typeof maybeDecodeFile === 'function') {
+            const text = await maybeDecodeFile(file);
+            if (text) {
+              decoded = String(text);
+            }
+          }
+        } catch {
+          // 忽略，继续用兜底方案
+        }
+
+        // 1) 优先走 ImageBitmap（新浏览器快）。如果已经解出，就不要再覆盖。
+        if (!decoded && 'createImageBitmap' in window) {
           try {
             const bitmap = await createImageBitmap(file);
             decoded =

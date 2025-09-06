@@ -7,7 +7,7 @@ import CameraScanner from '@/components/Scanner/CameraScanner';
 import ImageScanner from '@/components/Scanner/ImageScanner';
 import { QRResult } from '@/components/Scanner/QRResult';
 import { Camera, Upload } from 'lucide-react';
-import { ScanResult } from '@/types/scan'; // <-- 改为从 types 导入
+import type { ScanResult } from '@/types/scan'; // <-- 改为从 types 导入
 
 export default function ScanPage() {
   const [result, setResult] = useState<ScanResult | null>(null);
@@ -19,6 +19,7 @@ export default function ScanPage() {
 
   const handleScanAgain = () => {
     setResult(null);
+    setActiveTab('camera');
   };
 
   return (
@@ -55,7 +56,7 @@ export default function ScanPage() {
                 </TabsContent>
 
                 <TabsContent value="upload" className="space-y-4">
-                  <ImageScanner {...({ onDecoded: handleResult } as any)} />
+                  <ImageScanner onDecoded={handleResult} onError={(err) => console.warn('[ImageScanner error]', err)} />
                 </TabsContent>
               </div>
             </Tabs>
