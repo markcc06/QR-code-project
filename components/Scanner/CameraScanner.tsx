@@ -1,162 +1,146 @@
-
 'use client';
 
-// TS shim for optional BarcodeDetector on Window
-declare global {
-  interface Window {
-    BarcodeDetector?: any;
-  }
-}
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { decodeOnce } from '@/lib/qr/decode';
 
-import React, { useEffect, useRef, useState } from 'react';
-import { toast } from '@/hooks/use-toast'; // 用你现成的 toast（非必须，也可换成 console）
-// 如果你的路径不同，把上面这行路径改成实际路径
+/**
+ * Client-only camera scanner component.
+ *
+ * NOTE on props for Next.js App Router:
+ *  - To satisfy "serializable props" check for client entry files, we keep
+ *    callback props typed as `unknown` at the boundary, and then narrow them
+ *    at runtime and store into refs. This avoids the yellow warnings while
+ *    keeping a stable render tree.
+ *  - We also support a legacy `action` prop for backward compatibility with
+ *    existing callers (it behaves the same as `onDecoded`).
+ */
 
 type Props = {
-  onDecoded: (text: string) => void;
-  onError?: (msg: string) => void;
+  onDecoded?: unknown;          // (text: string) => void
+  action?: unknown;             // legacy alias for onDecoded
+  onError?: unknown;            // (msg: string) => void
   className?: string;
 };
 
-export default function CameraScanner({ onDecoded, onError, className }: Props) {
+export default function CameraScanner({ onDecoded, action, onError, className }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const rafRef = useRef<number>();
-  const streamRef = useRef<MediaStream | null>(null);
-  const [ready, setReady] = useState(false);
-  const [usingBarcodeDetector, setUsingBarcodeDetector] = useState(false);
+  const rafRef = useRef<number | null>(null);
+  const [running, setRunning] = useState(false);
+  const [usingBD, setUsingBD] = useState<boolean>(false);
 
-  // 清理
-  const stop = () => {
-    if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(t => t.stop());
-      streamRef.current = null;
-    }
-  };
+  // Hold callbacks in refs to avoid re-renders and satisfy Next.js prop constraints
+  const onDecodedRef = useRef<((text: string) => void) | null>(null);
+  const onErrorRef = useRef<((msg: string) => void) | null>(null);
 
   useEffect(() => {
-    (async () => {
-      try {
-        // 调起摄像头（优先后置）
-        const constraints: MediaStreamConstraints = {
-          video: {
-            facingMode: { ideal: 'environment' },
-            // 限制分辨率，降低功耗 + 提升解码速度
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-          },
-          audio: false,
-        };
+    // prefer new onDecoded, fall back to legacy action
+    const decodedCb = typeof onDecoded === 'function' ? (onDecoded as (t: string) => void)
+                    : typeof action === 'function' ? (action as (t: string) => void)
+                    : null;
+    onDecodedRef.current = decodedCb;
+    onErrorRef.current = typeof onError === 'function' ? (onError as (m: string) => void) : null;
+  }, [onDecoded, action, onError]);
 
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        streamRef.current = stream;
-
-        const video = videoRef.current!;
-        video.srcObject = stream;
-
-        // iOS Safari 必须要 inline + 静音自动播放
-        video.playsInline = true;
-        video.setAttribute('playsinline', 'true'); // iOS Safari inline playback
-        video.muted = true;
-
-        await video.play();
-        setReady(true);
-
-        // BarcodeDetector 可用？（部分浏览器支持）
-        const BD = (window as any).BarcodeDetector as any | undefined;
-        let detector: any = null;
-
-        if (BD && (await BD.getSupportedFormats()).includes('qr_code')) {
-          detector = new BD({ formats: ['qr_code'] });
-          setUsingBarcodeDetector(true);
-        } else {
-          // 动态加载 jsQR 作为兜底
-          setUsingBarcodeDetector(false);
-        }
-
-        const tick = async () => {
-          const v = videoRef.current!;
-          const c = canvasRef.current!;
-          if (!v || !c) return;
-
-          // 同步尺寸
-          if (v.videoWidth && v.videoHeight) {
-            c.width = v.videoWidth;
-            c.height = v.videoHeight;
-          }
-
-          const ctx = c.getContext('2d', { willReadFrequently: true });
-          if (ctx && c.width && c.height) {
-            ctx.drawImage(v, 0, 0, c.width, c.height);
-
-            try {
-              if (detector) {
-                // BarcodeDetector 路径
-                const barcodes = await detector.detect(c);
-                if (barcodes?.length) {
-                  const raw = barcodes[0].rawValue || '';
-                  if (raw) {
-                    onDecoded(raw);
-                    return; // 命中一次就结束扫描
-                  }
-                }
-              } else {
-                // jsQR 路径
-                const { default: jsQR } = await import('jsqr'); // 懒加载
-                const imageData = ctx.getImageData(0, 0, c.width, c.height);
-                const result = jsQR(imageData.data, c.width, c.height, {
-                  inversionAttempts: 'dontInvert',
-                });
-                if (result?.data) {
-                  onDecoded(result.data);
-                  return;
-                }
-              }
-            } catch (err: any) {
-              onError?.(err?.message || 'Decode error');
-            }
-          }
-
-          rafRef.current = requestAnimationFrame(tick);
-        };
-
-        rafRef.current = requestAnimationFrame(tick);
-      } catch (err: any) {
-        const msg =
-          err?.name === 'NotAllowedError'
-            ? '相机权限被拒绝，请在浏览器设置中允许访问摄像头。'
-            : '无法打开摄像头：' + (err?.message || '');
-        onError?.(msg);
-        try { toast({ title: 'Camera Error', description: msg }); } catch {}
-      }
-    })();
-
-    return () => stop();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  const stop = useCallback(() => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = null;
+    const v = videoRef.current;
+    const stream = v?.srcObject as MediaStream | null;
+    if (stream) stream.getTracks().forEach((t) => t.stop());
+    if (v) {
+      try { v.pause(); } catch {}
+      v.srcObject = null;
+    }
+    setRunning(false);
   }, []);
 
+  // Start camera and run a decode loop via requestAnimationFrame
+  const start = useCallback(async () => {
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error('Camera is not supported in this browser.');
+      }
+      // iOS/Android try rear camera; desktop use user/front
+      const isMobile = /Android|iPhone|iPad|iPod|Mobile|Windows Phone/i.test(navigator.userAgent);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: isMobile ? { ideal: 'environment' } : { ideal: 'user' },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+        audio: false,
+      });
+
+      const v = videoRef.current!;
+      v.srcObject = stream;
+      v.muted = true;
+      (v as any).playsInline = true; // iOS safari
+      await v.play();
+
+      setRunning(true);
+      setUsingBD('BarcodeDetector' in window);
+
+      const loop = async () => {
+        if (!v.videoWidth || !v.videoHeight) {
+          rafRef.current = requestAnimationFrame(loop);
+          return;
+        }
+        try {
+          const text = await decodeOnce(v);
+          if (text) {
+            stop();
+            onDecodedRef.current?.(text);
+            return;
+          }
+        } catch (err: any) {
+          // Non-fatal; continue scanning
+          if (onErrorRef.current) onErrorRef.current(err?.message || 'Decode failed');
+        }
+        rafRef.current = requestAnimationFrame(loop);
+      };
+      rafRef.current = requestAnimationFrame(loop);
+    } catch (e: any) {
+      onErrorRef.current?.(e?.message || 'Failed to start camera');
+      setRunning(false);
+    }
+  }, [stop]);
+
+  // When component unmounts, ensure camera is closed
+  useEffect(() => stop, [stop]);
+
+  // Try to auto-start on first mount; if blocked by autoplay policy,
+  // user can click the button to start.
+  useEffect(() => {
+    start().catch(() => {});
+  }, [start]);
+
   return (
-    <div className={className}>
-      <div className="relative w-full overflow-hidden rounded-xl">
-        <video
-          ref={videoRef}
-          className="block w-full h-auto"
-          // 低端机更稳
-          preload="metadata"
-          // @ts-ignore
-          playsInline
-        />
-        {!ready && (
-          <div className="absolute inset-0 grid place-items-center text-sm text-muted-foreground">
-            正在启动相机…
-          </div>
-        )}
+    <div className={['space-y-2', className].filter(Boolean).join(' ')}>
+      <div className="rounded-lg overflow-hidden bg-black/80">
+        <video ref={videoRef} className="w-full h-auto block" />
       </div>
-      <canvas ref={canvasRef} className="hidden" />
-      <p className="mt-2 text-xs text-muted-foreground">
-        {usingBarcodeDetector ? 'Using BarcodeDetector' : 'Using jsQR fallback'}
-      </p>
+
+      <div className="text-xs text-muted-foreground">
+        {usingBD ? 'Using BarcodeDetector · ' : 'Using jsQR fallback · '}
+        {running ? '' : 'Click “Start camera” if the browser blocked autoplay.'}
+      </div>
+
+      {!running && (
+        <button
+          onClick={start}
+          className="inline-flex items-center rounded-md bg-black text-white px-3 py-2 text-sm"
+        >
+          Start camera
+        </button>
+      )}
+      {running && (
+        <button
+          onClick={stop}
+          className="inline-flex items-center rounded-md border px-3 py-2 text-sm"
+        >
+          Stop
+        </button>
+      )}
     </div>
   );
 }

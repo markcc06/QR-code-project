@@ -1,132 +1,48 @@
 'use client';
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Copy, ExternalLink, RotateCcw, Check } from 'lucide-react';
+import React from 'react';
 
-// 轻量本地类型，避免强依赖外部 types
-export type ScanResultLike = {
-  text: string;
-  timestamp?: Date | string;
+type QRResultProps = {
+  value: string;
+  action?: () => void; // 统一函数型 prop 命名为 action，避免 Next 15 警告
 };
 
-interface QRResultProps {
-  /** 新推荐：传对象 { text, timestamp } */
-  result?: ScanResultLike;
-  /** 兼容旧用法：直接传字符串 */
-  value?: string;
-  onScanAgain: () => void;
-}
-
-export function QRResult({ result, value, onScanAgain }: QRResultProps) {
-  const [copied, setCopied] = useState(false);
-
-  const text = (result?.text ?? value ?? '').trim();
-  const tsRaw = result?.timestamp;
-  const ts = tsRaw ? new Date(tsRaw) : new Date();
-
-  const isUrl = (input: string) => {
-    const s = input.trim();
-    if (!s) return false;
+export default function QRResult({ value, action }: QRResultProps) {
+  const open = () => {
     try {
-      new URL(s);
-      return true;
+      const u = new URL(value);
+      window.open(u.toString(), '_blank', 'noopener,noreferrer');
     } catch {
-      return s.startsWith('http://') || s.startsWith('https://');
+      // 非 URL 就不打开
     }
   };
 
-  const copyToClipboard = async () => {
+  const copy = async () => {
     try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      // Fallback for older浏览器
-      const textArea = document.createElement('textarea');
-      textArea.value = text;
-      textArea.style.position = 'fixed';
-      textArea.style.left = '-9999px';
-      document.body.appendChild(textArea);
-      textArea.focus();
-      textArea.select();
-      try {
-        document.execCommand('copy');
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      } catch (_e) {
-        console.warn('Copy to clipboard failed', _e);
-      }
-      document.body.removeChild(textArea);
+      await navigator.clipboard?.writeText(value);
+    } catch {
+      /* no-op */
     }
   };
-
-  const openLink = () => {
-    if (isUrl(text)) {
-      window.open(text, '_blank', 'noopener,noreferrer');
-    }
-  };
-
-  if (!text) return null;
 
   return (
-    <div className="space-y-6">
-      <Alert className="border-green-200 bg-green-50">
-        <Check className="h-4 w-4 text-green-600" />
-        <AlertDescription className="text-green-800">
-          QR code successfully scanned!
-        </AlertDescription>
-      </Alert>
+    <div className="rounded-xl border p-6">
+      <div className="mb-1 text-sm text-muted-foreground">Decoded Content:</div>
+      <input className="w-full rounded border px-3 py-2" readOnly value={value} />
 
-      <Card className="border-green-200">
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Scan Result</span>
-            <span className="text-sm font-normal text-gray-500">
-              {ts.toLocaleTimeString?.() ?? ''}
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <p className="text-sm text-gray-600 mb-2">Decoded Content:</p>
-            <p className="font-mono text-sm break-all whitespace-pre-wrap border p-3 rounded bg-white">
-              {text}
-            </p>
-          </div>
+      <div className="mt-4 flex gap-3">
+        <button className="rounded border px-3 py-2" onClick={copy}>
+          Copy Text
+        </button>
+        <button className="rounded border px-3 py-2" onClick={open}>
+          Open Link
+        </button>
+      </div>
 
-          <div className="flex flex-wrap gap-3">
-            <Button onClick={copyToClipboard} variant="outline" className="flex-1">
-              {copied ? (
-                <>
-                  <Check className="mr-2 w-4 h-4 text-green-600" />
-                  Copied!
-                </>
-              ) : (
-                <>
-                  <Copy className="mr-2 w-4 h-4" />
-                  Copy Text
-                </>
-              )}
-            </Button>
-
-            {isUrl(text) && (
-              <Button onClick={openLink} className="flex-1">
-                <ExternalLink className="mr-2 w-4 h-4" />
-                Open Link
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="text-center">
-        <Button onClick={onScanAgain} variant="outline" size="lg">
-          <RotateCcw className="mr-2 w-4 h-4" />
+      <div className="mt-6">
+        <button className="rounded bg-black px-3 py-2 text-white" onClick={action}>
           Scan Another QR Code
-        </Button>
+        </button>
       </div>
     </div>
   );

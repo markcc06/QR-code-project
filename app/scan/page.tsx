@@ -1,74 +1,50 @@
 'use client';
 
-import { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent } from '@/components/ui/card';
-import CameraScanner from '@/components/Scanner/CameraScanner';
-import ImageScanner from '@/components/Scanner/ImageScanner';
-import { QRResult } from '@/components/Scanner/QRResult';
-import { Camera, Upload } from 'lucide-react';
-import type { ScanResult } from '@/types/scan'; // <-- 改为从 types 导入
+import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
+
+// 两个面板都是 client 组件，禁用 SSR
+const ScannerPanel = dynamic(() => import('./ScannerPanel'), { ssr: false });
+const ScannerPanelMobile = dynamic(() => import('./ScannerPanel'), { ssr: false });
 
 export default function ScanPage() {
-  const [result, setResult] = useState<ScanResult | null>(null);
-  const [activeTab, setActiveTab] = useState<'camera' | 'upload'>('camera');
+  const [ready, setReady] = useState(false);
+  const [isMobile, setIsMobile] = useState<boolean | null>(null);
 
-  const handleResult = (text: string) => {
-    setResult({ text, timestamp: new Date() });
-  };
+  useEffect(() => {
+    const compute = () => {
+      // 宽度 + 触点 + UA 三重判断，尽量避免桌面被误判为移动
+      const ua = (typeof navigator !== 'undefined' ? navigator.userAgent : '') || '';
+      const narrow = typeof window !== 'undefined' ? window.innerWidth < 768 : false; // md 断点
+      const coarse = typeof window !== 'undefined' && window.matchMedia
+        ? window.matchMedia('(pointer: coarse)').matches
+        : false;
+      const mobileUA = /Android|iPhone|iPad|iPod|Windows Phone/i.test(ua);
 
-  const handleScanAgain = () => {
-    setResult(null);
-    setActiveTab('camera');
-  };
+      setIsMobile((mobileUA || coarse) && narrow);
+      setReady(true);
+    };
+
+    compute();
+    window.addEventListener('resize', compute);
+    window.addEventListener('orientationchange', compute);
+    return () => {
+      window.removeEventListener('resize', compute);
+      window.removeEventListener('orientationchange', compute);
+    };
+  }, []);
+
+  if (!ready || isMobile === null) {
+    return (
+      <div className="mx-auto max-w-5xl px-4 py-12 text-center text-sm text-muted-foreground">
+        Loading scanner…
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">QR Code Scanner</h1>
-        <p className="text-gray-600">
-          Choose your preferred scanning method below
-        </p>
-      </div>
-
-      <Card className="shadow-lg">
-        <CardContent className="p-6">
-          {result ? (
-            <QRResult result={result} onScanAgain={handleScanAgain} />
-          ) : (
-            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'camera' | 'upload')}>
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="camera" className="flex items-center gap-2">
-                  <Camera className="w-4 h-4" />
-                  Camera
-                </TabsTrigger>
-                <TabsTrigger value="upload" className="flex items-center gap-2">
-                  <Upload className="w-4 h-4" />
-                  Upload
-                </TabsTrigger>
-              </TabsList>
-              
-              <div className="mt-6">
-                <TabsContent value="camera" className="space-y-4">
-                  {activeTab === 'camera' && (
-                    <CameraScanner onDecoded={handleResult} onError={(m) => console.warn(m)} />
-                  )}
-                </TabsContent>
-
-                <TabsContent value="upload" className="space-y-4">
-                  <ImageScanner onDecoded={handleResult} onError={(err) => console.warn('[ImageScanner error]', err)} />
-                </TabsContent>
-              </div>
-            </Tabs>
-          )}
-        </CardContent>
-      </Card>
-
-      <div className="mt-6 text-center">
-        <p className="text-sm text-gray-500">
-          🔒 All QR code processing is done locally in your browser for privacy
-        </p>
-      </div>
+    <div className="mx-auto max-w-5xl px-4 py-6">
+      {isMobile ? <ScannerPanelMobile /> : <ScannerPanel />}
     </div>
   );
 }

@@ -1,53 +1,84 @@
-import { BrowserQRCodeReader } from '@zxing/browser';
+// lib/qr/decode.ts
+// 统一的兜底解码：优先 BarcodeDetector，失败回退 jsQR（仅在客户端执行）
 import jsQR from 'jsqr';
 
-/**
- * Decode a File (image) and return the decoded text or null.
- */
-export async function decodeImageFile(file: File): Promise<string | null> {
-  // 读取为 data URL
-  const dataUrl = await new Promise<string>((resolve, reject) => {
-    const fr = new FileReader();
-    fr.onload = () => resolve(fr.result as string);
-    fr.onerror = () => reject(new Error('Failed to read image file'));
-    fr.readAsDataURL(file);
-  });
+type DecodeSource = HTMLVideoElement | HTMLImageElement | ImageBitmap | ImageData | HTMLCanvasElement;
 
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = async () => {
-      // 在 canvas 上绘制并提取像素
-      const canvas = document.createElement('canvas');
-      canvas.width = img.naturalWidth || img.width;
-      canvas.height = img.naturalHeight || img.height;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return resolve(null);
-      ctx.drawImage(img, 0, 0);
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+const detector =
+  typeof window !== 'undefined' && 'BarcodeDetector' in window
+    ? new (window as any).BarcodeDetector({ formats: ['qr_code'] })
+    : null;
 
-      // 方案 A：先用 jsQR（轻量且常用）
-      try {
-        const qr = jsQR(imageData.data, imageData.width, imageData.height);
-        if (qr && qr.data) return resolve(qr.data);
-      } catch (e) {
-        // 忽略，继续后备方案
+export async function decodeOnce(src: DecodeSource): Promise<string | null> {
+  // 先试 BarcodeDetector（它可以直接喂 video / canvas / image）
+  if (detector) {
+    try {
+      const codes = await detector.detect(src as any);
+      if (codes && codes.length > 0) {
+        const v = (codes[0] as any).rawValue || (codes[0] as any).rawValue?.toString?.();
+        if (v) return v as string;
       }
+    } catch {
+      // ignore, fallback to jsQR
+    }
+  }
 
-      // 方案 B：用 ZXing 作为回退（对某些情况更鲁棒）
-      try {
-        const reader = new BrowserQRCodeReader();
-        const result = await reader.decodeFromImageElement(img);
-        if (result && typeof result.getText === 'function') {
-          return resolve(result.getText());
-        }
-      } catch (e) {
-        // 忽略错误，最后返回 null
-      }
+  // 回退：把任何来源画到 canvas，再用 jsQR
+  const { canvas, ctx, w, h } = toCanvas(src);
+  if (!w || !h) return null;
 
-      resolve(null);
-    };
+  // 为了性能，缩到 800px 边长以内
+  const scale = Math.min(1, 800 / Math.max(w, h));
+  let sw = Math.max(1, Math.floor(w * scale));
+  let sh = Math.max(1, Math.floor(h * scale));
+  if (scale !== 1) {
+    const tmp = document.createElement('canvas');
+    tmp.width = sw;
+    tmp.height = sh;
+    tmp.getContext('2d')!.drawImage(canvas, 0, 0, w, h, 0, 0, sw, sh);
+    const data = tmp.getContext('2d')!.getImageData(0, 0, sw, sh);
+    const code = jsQR(data.data, sw, sh, { inversionAttempts: 'dontInvert' });
+    return code?.data ?? null;
+  } else {
+    const data = ctx.getImageData(0, 0, w, h);
+    const code = jsQR(data.data, w, h, { inversionAttempts: 'dontInvert' });
+    return code?.data ?? null;
+  }
+}
 
-    img.onerror = () => resolve(null);
-    img.src = dataUrl;
-  });
+function toCanvas(src: DecodeSource) {
+  if (src instanceof HTMLCanvasElement) {
+    return { canvas: src, ctx: src.getContext('2d')!, w: src.width, h: src.height };
+  }
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d')!;
+  let w = 0, h = 0;
+
+  if (src instanceof HTMLVideoElement) {
+    w = src.videoWidth; h = src.videoHeight;
+    if (!w || !h) return { canvas, ctx, w: 0, h: 0 };
+    canvas.width = w; canvas.height = h;
+    ctx.drawImage(src, 0, 0, w, h);
+    return { canvas, ctx, w, h };
+  }
+  if (src instanceof ImageBitmap) {
+    w = src.width; h = src.height;
+    canvas.width = w; canvas.height = h;
+    ctx.drawImage(src, 0, 0);
+    return { canvas, ctx, w, h };
+  }
+  if (src instanceof ImageData) {
+    w = src.width; h = src.height;
+    canvas.width = w; canvas.height = h;
+    ctx.putImageData(src, 0, 0);
+    return { canvas, ctx, w, h };
+  }
+  if (src instanceof HTMLImageElement) {
+    w = src.naturalWidth; h = src.naturalHeight;
+    if (!w || !h) return { canvas, ctx, w: 0, h: 0 };
+    canvas.width = w; canvas.height = h;
+    ctx.drawImage(src, 0, 0);
+    return { canvas, ctx, w, h };
+  }
+  return { canvas, ctx, w: 0, h: 0 };
 }
