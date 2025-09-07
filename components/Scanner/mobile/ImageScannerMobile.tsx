@@ -89,8 +89,7 @@ export default function ImageScannerMobile({ action, onError, className }: Image
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
-        capture="environment"
+        accept="image/*,.jpg,.jpeg,.png,.webp"
         className="hidden"
         onChange={onChange}
       />

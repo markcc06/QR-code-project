@@ -13,6 +13,8 @@ export default function CameraScannerMobile({
   action,
   onDecoded,
   onError,
+  preferBackCamera = true,
+  isActive = true,
 }: CameraScannerMobileProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -82,14 +84,10 @@ export default function CameraScannerMobile({
     setStarting(true);
 
     try {
-      const isMobile =
-        typeof navigator !== 'undefined' &&
-        /Android|iPhone|iPad|iPod|Mobile|Windows Phone/i.test(navigator.userAgent || '');
-
       const constraints: MediaStreamConstraints = {
-        video: isMobile
+        video: preferBackCamera
           ? { facingMode: { ideal: 'environment' } }
-          : { width: { ideal: 640 }, height: { ideal: 480 } },
+          : { facingMode: { ideal: 'user' } },
         audio: false,
       };
 
@@ -111,13 +109,17 @@ export default function CameraScannerMobile({
     } finally {
       setStarting(false);
     }
-  }, [decodeLoop, onError, starting, stop]);
+  }, [decodeLoop, onError, starting, stop, preferBackCamera]);
 
   useEffect(() => {
-    if (autoStart) start();
+    if (autoStart && isActive) {
+      start();
+    } else if (!isActive) {
+      stop();
+    }
     return stop;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoStart]);
+  }, [autoStart, isActive]);
 
   return (
     <div className={className}>
