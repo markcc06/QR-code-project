@@ -8,6 +8,7 @@ export function Navbar() {
           <span className="text-lg font-semibold">QR Scanner</span>
         </Link>
         <nav className="flex items-center gap-6">
+          <Link href="/blog" className="font-medium hover:text-blue-600">Blog</Link>
           <Link href="/scan" className="font-medium hover:text-blue-600">Scan</Link>
           <Link href="/privacy" className="font-medium hover:text-blue-600">Privacy</Link>
         </nav>
