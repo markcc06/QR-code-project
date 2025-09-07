@@ -2,15 +2,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import React, { useCallback, useRef, useState } from 'react';
-
-export type ImageScannerMobileProps = {
-  /** 成功回调（与桌面/移动端统一命名） */
-  action: (text: string) => void;
-  /** 错误回调（可选） */
-  onError?: (message: string) => void;
-  /** 自定义样式（可选） */
-  className?: string;
-};
+import type { ImageScannerMobileProps } from '../../../types/scan';
 
 /**
  * ImageScannerMobile
@@ -52,7 +44,7 @@ export default function ImageScannerMobile({ action, onError, className }: Image
 
       const text = await decodeFileToQrText(file, canvasRef.current!);
       if (text) {
-        action(text);
+        action?.(text);
       } else {
         throw new Error('没有在图片中识别到二维码，请更换更清晰的图片或拉远对焦。');
       }

@@ -2,18 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import jsQR from 'jsqr';
-
-export type CameraScannerMobileProps = {
-  /** 进入时是否自动启动相机（默认 true） */
-  autoStart?: boolean;
-  className?: string;
-  /** 解码成功回调（与桌面端统一命名） */
-  action?: (text: string) => void;
-  /** 兼容旧版命名（如外层仍在用 onDecoded） */
-  onDecoded?: (text: string) => void;
-  /** 错误回调（可选） */
-  onError?: (msg: string) => void;
-};
+import type { CameraScannerMobileProps } from '../../../types/scan';
 
 const hasBarcodeDetector =
   typeof window !== 'undefined' && typeof (window as any).BarcodeDetector !== 'undefined';
