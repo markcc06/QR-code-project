@@ -4,12 +4,6 @@
 import React, { useCallback, useRef, useState } from 'react';
 import type { ImageScannerMobileProps } from '../../../types/scan';
 
-/**
- * ImageScannerMobile
- * - 移动端上传/拍照识别二维码；不影响桌面端逻辑。
- * - 使用 `<input accept="image/*" capture="environment">` 允许直接拍照。
- * - 解码优先走 Canvas + jsQR（懒加载），失败给出友好错误。
- */
 export default function ImageScannerMobile({ action, onError, className }: ImageScannerMobileProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -85,7 +79,7 @@ export default function ImageScannerMobile({ action, onError, className }: Image
       {/* 隐藏画布：用于解码 */}
       <canvas ref={canvasRef} className="hidden" />
 
-      {/* 隐藏文件选择器：允许直接拍照 */}
+      {/* 隐藏文件选择器：仅选择相册，不再触发拍照 */}
       <input
         ref={inputRef}
         type="file"
