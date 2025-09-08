@@ -1,4 +1,3 @@
-// components/Scanner/ImageScanner.tsx
 'use client';
 
 import React, { useCallback, useRef, useState } from 'react';
