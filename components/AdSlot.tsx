@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useEffect, useId } from "react";
 import { cn } from "@/lib/utils";
@@ -23,9 +23,10 @@ export default function AdSlot({
   size = "banner",
   enabled = undefined,
 }: AdSlotProps) {
-  // 统一决定是否渲染广告（props 优先，然后看环境变量；开发环境一律关）
+  // 统一决定是否渲染广告（props 优先，然后看环境变量；开发环境时需显式开启）
   const shouldEnable =
-    (enabled ?? ENV_ENABLED) && process.env.NODE_ENV === "production";
+    (enabled ?? ENV_ENABLED) &&
+    (process.env.NODE_ENV === "production" || process.env.NODE_ENV === "development");
 
   const id = useId();
 

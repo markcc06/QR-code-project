@@ -8,8 +8,50 @@ import Script from 'next/script';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Online QR Scanner',
-  description: 'Scan QR codes with your camera or by uploading images',
+  metadataBase: new URL('https://www.scanqrly.xyz'),
+  title: {
+    default: 'Free Online QR Scanner — Scan QR from Image or Camera',
+    template: '%s | ScanQRly'
+  },
+  description: 'Free online QR code scanner to decode codes from camera or image upload. 100% free, private, and secure. Works on PC, Mac, and mobile browsers — no app required.',
+  // removed keywords: deprecated for SEO
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/apple-touch-icon.png',
+  },
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    title: 'Free Online QR Scanner — Scan QR from Image or Camera',
+    description: 'Scan QR codes instantly using your camera or upload images. All processing happens locally in your browser — privacy-first, no data leaves your device.',
+    url: 'https://www.scanqrly.xyz',
+    siteName: 'ScanQRly',
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'ScanQRly — Free Online QR Scanner',
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: '@scanqrly',
+    creator: '@scanqrly',
+    title: 'Free Online QR Scanner — Scan QR from Image or Camera',
+    description: 'Free, fast, and privacy-first online QR code reader. Works with camera or image upload, directly in your browser.',
+    images: ['/og-image.png'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    nocache: false,
+  },
 };
 
 const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_ID;
@@ -41,6 +83,33 @@ export default function RootLayout({
             </Script>
           </>
         )}
+        <Script id="structured-data" type="application/ld+json" strategy="afterInteractive">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@graph": [
+              {
+                "@type": "WebSite",
+                "@id": "https://www.scanqrly.xyz/#website",
+                "url": "https://www.scanqrly.xyz",
+                "name": "ScanQRly",
+                "description": "Free online QR scanner to decode codes from camera or image upload. Privacy-first, no app required.",
+                "publisher": { "@id": "https://www.scanqrly.xyz/#organization" },
+                "inLanguage": "en"
+              },
+              {
+                "@type": "Organization",
+                "@id": "https://www.scanqrly.xyz/#organization",
+                "name": "ScanQRly",
+                "url": "https://www.scanqrly.xyz",
+                "logo": {
+                  "@type": "ImageObject",
+                  "url": "https://www.scanqrly.xyz/image.png"
+                },
+                "sameAs": []
+              }
+            ]
+          })}
+        </Script>
       </head>
       <body className={inter.className}>
         <Navbar />

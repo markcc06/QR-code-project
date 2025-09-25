@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
 import { Shield, Lock, Eye, Server } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
+export const metadata: Metadata = {
+  title: "Privacy Policy - QR Scanner",
+  description: "Learn how our QR scanner keeps your data safe. Local decoding, no uploads, zero storage, and full privacy guaranteed."
+};
 
 export default function PrivacyPage() {
   return (
@@ -16,6 +22,8 @@ export default function PrivacyPage() {
           Your privacy is our priority. Learn how our QR scanner protects your data.
         </p>
       </div>
+
+      <h2 className="text-2xl font-bold text-gray-900 mb-6">Our Privacy Principles</h2>
 
       <div className="grid gap-8 md:grid-cols-2 mb-12">
         <Card>

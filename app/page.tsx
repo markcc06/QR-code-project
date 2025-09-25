@@ -3,6 +3,12 @@ import { QrCode, Camera, Upload, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import AdSlot from '@/components/AdSlot';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Free Online QR Code Scanner — Scan QR from Image or Camera',
+  description: 'Free online QR scanner to decode QR codes instantly via camera or image upload. 100% free, secure, privacy-first — works on PC, Mac, and mobile.',
+};
 
 
 export default function Home() {
@@ -17,15 +23,14 @@ export default function Home() {
         </div>
         
         <h1 className="text-4xl font-bold text-gray-900 mb-4 sm:text-5xl">
-          Online QR Scanner
+          Free Online QR Code Scanner — Scan QR from Image or Camera
         </h1>
         
         <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-          Scan QR codes instantly with your camera or upload images. 
-          Fast, secure, and completely private - no data leaves your browser.
+          Upload an image or use your camera to decode QR codes instantly. 100% free, no app required, all processing stays private in your browser.
         </p>
         
-        <Link href="/scan">
+        <Link href="/scan" title="Start scanning QR codes now">
           <Button size="lg" className="text-lg px-8 py-6">
             Start Scanning
             <QrCode className="ml-2 w-5 h-5" />
@@ -35,8 +40,8 @@ export default function Home() {
 
       {/* Ad Placeholder */}
       <div className="mb-12">
-        {/* Conditional ad slot: only renders when enabled or client set */}
-        <AdSlot />
+        {/* Render ads only in production and on the client to avoid dev/extension fetch errors */}
+        {process.env.NODE_ENV === 'production' ? <AdSlot /> : null}
       </div>
 
       {/* Features */}
@@ -76,6 +81,32 @@ export default function Home() {
             </p>
           </CardContent>
         </Card>
+      </div>
+
+      {/* FAQ Section (Compact Accordion) */}
+      <div className="max-w-3xl mx-auto mb-12">
+        <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Frequently Asked Questions</h2>
+        <details className="mb-4 border-b pb-2">
+          <summary className="cursor-pointer font-semibold">Can I scan a QR code from an image?</summary>
+          <p className="text-gray-600 mt-2">Yes. You can upload a photo or screenshot and instantly scan QR from image in your browser.</p>
+        </details>
+        <details className="mb-4 border-b pb-2">
+          <summary className="cursor-pointer font-semibold">Do I need to install an app to scan QR codes?</summary>
+          <p className="text-gray-600 mt-2">No. This QR code scanner works entirely online — no app, no download, no registration.</p>
+        </details>
+        <details className="mb-4 border-b pb-2">
+          <summary className="cursor-pointer font-semibold">Is it safe and private?</summary>
+          <p className="text-gray-600 mt-2">Yes. All QR decoding happens locally in your browser. No data is uploaded or stored.</p>
+        </details>
+        <div className="text-center mt-6">
+          <Link 
+            href="/faq" 
+            title="View all frequently asked questions about the QR code scanner" 
+            className="text-blue-600 font-medium hover:underline"
+          >
+            View all FAQs →
+          </Link>
+        </div>
       </div>
 
       {/* How it Works */}
