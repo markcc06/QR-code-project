@@ -19,6 +19,8 @@ export function Navbar() {
         <nav className="flex items-center gap-6">
           <Link href="/blog" className="font-medium hover:text-blue-600" title="QR Scanner Blog and Guides">Blog</Link>
           <Link href="/scan" className="font-medium hover:text-blue-600" title="Online QR Code Scanner Tool">Scan</Link>
+          <Link href="/about" className="font-medium hover:text-blue-600" title="About ScanQRly">About</Link>
+          <Link href="/terms" className="font-medium hover:text-blue-600" title="Terms of Service">Terms</Link>
           <Link href="/privacy" className="font-medium hover:text-blue-600" title="Privacy Policy for ScanQRly">Privacy</Link>
         </nav>
       </div>

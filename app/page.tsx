@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 
 export default function Home() {
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+      <div className="max-w-4xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
       {/* Hero Section */}
       <div className="text-center mb-12">
         <div className="flex justify-center mb-6">

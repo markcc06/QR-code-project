@@ -1,11 +1,4 @@
-import type { Metadata } from 'next';
-
-export const metadata: Metadata = {
-  title: 'FAQ — Free Online QR Code Scanner & Reader',
-  description:
-    'Find answers about our free online QR code scanner. Learn how to scan QR from image, use on PC, Mac, or mobile. Safe, private, and no app required.',
-};
-
+'use client';
 
 import React from 'react';
 import Script from 'next/script';

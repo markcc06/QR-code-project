@@ -1,3 +1,9 @@
+declare global {
+  interface Window {
+    cookieyes?: unknown;
+  }
+}
+import React, { Suspense } from 'react';
 import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
@@ -61,6 +67,7 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+
   return (
     // language set to English for international audience
     <html lang="en">
@@ -83,38 +90,33 @@ export default function RootLayout({
             </Script>
           </>
         )}
-        <Script id="structured-data" type="application/ld+json" strategy="afterInteractive">
-          {JSON.stringify({
-            "@context": "https://schema.org",
-            "@graph": [
-              {
-                "@type": "WebSite",
-                "@id": "https://www.scanqrly.xyz/#website",
-                "url": "https://www.scanqrly.xyz",
-                "name": "ScanQRly",
-                "description": "Free online QR scanner to decode codes from camera or image upload. Privacy-first, no app required.",
-                "publisher": { "@id": "https://www.scanqrly.xyz/#organization" },
-                "inLanguage": "en"
-              },
-              {
-                "@type": "Organization",
-                "@id": "https://www.scanqrly.xyz/#organization",
-                "name": "ScanQRly",
-                "url": "https://www.scanqrly.xyz",
-                "logo": {
-                  "@type": "ImageObject",
-                  "url": "https://www.scanqrly.xyz/image.png"
-                },
-                "sameAs": []
-              }
-            ]
-          })}
-        </Script>
+        <Script
+          id="structured-data"
+          type="application/ld+json"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              "url": "https://www.scanqrly.xyz",
+              "name": "ScanQRly",
+            }),
+          }}
+        />
       </head>
       <body className={inter.className}>
-        <Navbar />
-        {children}
-        <FabFeedback />
+        <Suspense fallback={null}>
+          <Navbar />
+          {children}
+          <FabFeedback />
+        </Suspense>
+
+        {/* ✅ CookieYes Banner Script */}
+        <Script
+          id="cookieyes-banner"
+          strategy="afterInteractive"
+          src="https://cdn-cookieyes.com/client_data/62ed42118afa099ca8f3428f/script.js"
+        />
       </body>
     </html>
   );

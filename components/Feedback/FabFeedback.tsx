@@ -1,10 +1,28 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { usePathname, useSearchParams } from 'next/navigation';
 
 export default function FabFeedback() {
   const [open, setOpen] = useState(false);
   const formUrl = process.env.NEXT_PUBLIC_FEEDBACK_FORM_URL || '';
+
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+
+  useEffect(() => {
+    const feedbackOpen = searchParams.get('feedback');
+    if (feedbackOpen === 'open') {
+      // 如果是 Google Form，直接新开标签页
+      if (formUrl.includes('docs.google.com/forms')) {
+        window.open(formUrl, '_blank');
+      } else {
+        setOpen(true);
+      }
+    } else {
+      setOpen(false);
+    }
+  }, [pathname, searchParams, formUrl]);
 
   // 防止提前渲染出错，通过 useEffect 延迟获取环境变量
   const [showButton, setShowButton] = useState(false);
@@ -35,7 +53,7 @@ export default function FabFeedback() {
       <button
         onClick={() => setOpen(true)}
         aria-label="Feedback"
-        className="fixed right-4 bottom-4 z-50 flex items-center justify-center w-14 h-14 rounded-full bg-black text-white shadow-lg hover:opacity-95"
+        className="feedback-button fixed right-4 bottom-4 z-50 flex items-center justify-center w-14 h-14 rounded-full bg-black text-white shadow-lg hover:opacity-95"
       >
         <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -60,12 +78,14 @@ export default function FabFeedback() {
                 <button onClick={() => setOpen(false)} className="px-3 py-1 rounded bg-gray-100">Close</button>
               </div>
             </div>
-            <iframe
-              src={formUrl}
-              title="Feedback Form"
-              className="w-full h-full border-0"
-              sandbox="allow-scripts allow-forms allow-same-origin allow-popups"
-            />
+            {!formUrl.includes('docs.google.com/forms') && (
+              <iframe
+                src={formUrl}
+                title="Feedback Form"
+                className="w-full h-full border-0"
+                sandbox="allow-scripts allow-forms allow-same-origin allow-popups"
+              />
+            )}
           </div>
         </div>
       )}
