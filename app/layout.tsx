@@ -88,6 +88,14 @@ export default function RootLayout({
                 gtag('config', '${GA_MEASUREMENT_ID}', { send_page_view: true });
               `}
             </Script>
+            {/* ✅ Google AdSense Verification Script */}
+            <Script
+              id="adsense-init"
+              async
+              strategy="afterInteractive"
+              src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6728061725805697"
+              crossOrigin="anonymous"
+            />
           </>
         )}
         <Script
