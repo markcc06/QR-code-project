@@ -72,6 +72,7 @@ export default function RootLayout({
     // language set to English for international audience
     <html lang="en">
       <head>
+        <meta name="google-adsense-account" content="ca-pub-6728061725805697" />
         {GA_MEASUREMENT_ID && (
           <>
             {/* Load GA4 gtag script after the page is interactive */}
