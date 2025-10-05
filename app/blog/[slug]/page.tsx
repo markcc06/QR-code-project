@@ -1,6 +1,16 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { posts } from '@/lib/blog/posts';
+// If Post type is imported, extend it here. Otherwise, define it locally:
+type Post = {
+  slug: string;
+  title: string;
+  content?: string;
+  excerpt?: string;
+  date?: string;
+  image?: string;
+  [key: string]: any;
+};
 
 export const revalidate = 3600;
 
@@ -8,10 +18,11 @@ export function generateStaticParams() {
   return posts.map(p => ({ slug: p.slug }));
 }
 
-/** 工具：规范化 meta */
 function clampTitle(t: string) {
   let full = `${t} | ScanQRly`;
-  return full.length <= 60 ? full : (t.slice(0, 57) + '…');
+  // Clamp to 60 chars total (including " | ScanQRly"), but trim at a word break for readability.
+  // The main title should be clamped to 55 chars, then add ellipsis and suffix.
+  return full.length <= 60 ? full : (t.slice(0, 55).trimEnd() + '…');
 }
 function clampDesc(s: string) {
   const clean = s.replace(/\s+/g, ' ').trim();
@@ -21,7 +32,6 @@ function clampDesc(s: string) {
   return merged.length > 160 ? (merged.slice(0, 157) + '…') : merged;
 }
 
-/** 极简 Markdown→HTML（支持 ##/###/列表/分段/链接）+ 内链 */
 function mdLiteToHtml(src: string) {
   const esc = (s: string) =>
     s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -29,29 +39,24 @@ function mdLiteToHtml(src: string) {
   const slug = (s: string) => s.toLowerCase().replace(/[^\w]+/g,'-').replace(/(^-|-$)/g,'');
 
   const linkify = (txt: string) => {
-    // 1) Markdown links [text](https://...)
     let s = txt.replace(
       /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
       (_m, label, url) => `<a href="${url}" title="${label}" target="_blank" rel="noopener">${label}</a>`
     );
 
-    // Helpers
     const toRelative = (url: string) =>
       url.replace(/^https?:\/\/(www\.)?scanqrly\.xyz(\/[^\s)]*)?/i, (_m, _w, path) => path || '/');
 
-    // Only replace outside existing <a>...</a>
     const replaceOutsideAnchors = (input: string, replacer: (chunk: string) => string) =>
       input
         .split(/(<a\b[^>]*>.*?<\/a>)/gi)
         .map((part, i) => (i % 2 ? part : replacer(part)))
         .join('');
 
-    // 2) Internal relative links like /scan /faq /blog (outside anchors only)
     s = replaceOutsideAnchors(s, (chunk) =>
       chunk.replace(/(^|[\s(])((?:\/(?:scan|faq|blog)[^\s)]*))/g, (_m, pre, url) => `${pre}<a href="${url}" title="Go to ${url}">${url}</a>`)
     );
 
-    // 3) Bare http(s) links → make anchors; normalize scanqrly domain to relative (outside anchors only)
     s = replaceOutsideAnchors(s, (chunk) =>
       chunk.replace(/(https?:\/\/[^\s)]+)/g, (_m, url) => {
         const href = toRelative(url);
@@ -142,16 +147,17 @@ export default async function BlogPostPage(
 
   return (
     <main className="container mx-auto max-w-3xl px-4 py-10">
-      <h1 className="text-3xl font-bold mb-3" title={post.title}>{post.title}</h1>
-      <p className="text-sm text-muted-foreground mb-8" title={new Date(post.date).toDateString()}>
-        {new Date(post.date).toLocaleDateString()}
+      <h1 className="text-4xl md:text-5xl font-extrabold text-center text-gray-900 mb-6" title={post.title}>{post.title}</h1>
+      <div className="h-1 w-24 mx-auto mb-8 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full"></div>
+      <p className="text-center text-gray-500 text-sm mb-10" title={post.date && !isNaN(new Date(post.date).getTime()) ? new Date(post.date).toDateString() : undefined}>
+        {post.date && !isNaN(new Date(post.date).getTime()) ? new Date(post.date).toLocaleDateString() : 'Date unavailable'}
       </p>
       <article
-        className="prose prose-lg lg:prose-xl leading-relaxed max-w-none prose-headings:mt-10 prose-headings:mb-4 prose-p:mb-6 prose-li:mb-2 prose-hr:my-10"
-        dangerouslySetInnerHTML={{ __html: html }}
+        className="prose prose-lg lg:prose-xl leading-relaxed max-w-none bg-gray-50 p-8 rounded-xl shadow-sm prose-headings:mt-10 prose-headings:mb-4 prose-p:mb-6 prose-li:mb-2 prose-hr:my-10"
+        dangerouslySetInnerHTML={{ __html: html || '<p>No content available.</p>' }}
       />
-      <footer className="mt-12 border-t pt-8">
-        <h2 className="text-2xl font-semibold mb-4">Try Our Free QR Scanner Tools</h2>
+      <footer className="mt-16 border-t pt-10 bg-gray-50 rounded-xl p-8">
+        <h2 className="text-2xl font-semibold mb-4">Explore More Free QR Tools</h2>
         <ul className="space-y-2">
           <li>
             <a href="/scan#camera" title="Camera QR Scanner — scan with your webcam" className="underline underline-offset-2">Camera QR Scanner</a>
@@ -167,3 +173,5 @@ export default async function BlogPostPage(
     </main>
   );
 }
+
+export const dynamicParams = false;

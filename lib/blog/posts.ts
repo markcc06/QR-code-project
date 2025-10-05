@@ -5,24 +5,30 @@ export type Post = {
   excerpt: string;
   description?: string;
   keywords?: string[];
+  image?: string;
   content: string; // plain text with optional single-line image URLs
 };
+
+function getUSDate() {
+  const now = new Date();
+  return now.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+}
 
 export const posts: Post[] = [
   {
     slug: 'how-to-scan-qr-codes-online',
     title: 'Scan QR Codes Online — Quick Guide',
-    date: '2025/9/7',
+    date: '2025-09-07',
     excerpt: 'Fast ways to scan QR codes with your camera or by uploading an image — private, instant, no app needed.',
     description:
-      'Learn how to scan QR codes online using your camera or an uploaded image. Step-by-step guide with real use cases, FAQs, and privacy tips.',
+      'Scan QR codes online quickly using your camera or by uploading an image. This guide covers private, instant scanning without any app installation, plus real-life use cases and privacy tips.',
     keywords: [
+      'scan qr code online',
       'online qr code scanner',
       'scan qr code with camera',
       'scan qr code from image',
-      'wifi qr code',
-      'qr code login',
-      'qr code ingredients'
+      'privacy qr code',
+      'instant qr scan'
     ],
     content: [
       '## Overview',
@@ -122,23 +128,23 @@ export const posts: Post[] = [
       '- Or visit the Main Scan Page for all features in one place.  ',
       '',
       'Fast, private, and 100% free — start scanning QR codes now.',
-      '',
-      '/og-default.png'
+      ''
     ].join('\n')
   },
   {
     slug: 'scan-qr-code-on-pc-mac-without-app',
     title: 'Scan QR Code on PC or Mac Without App',
-    date: '2025/9/26',
+    date: '2025-09-26',
     excerpt: 'Learn how to scan QR codes on PC or Mac without apps. Use a free online QR scanner to decode screenshots or images instantly, privately, and securely.',
     description:
-      'Scan QR codes on PC or Mac without apps. Upload images or use your webcam with a free online QR scanner — private, fast, and secure.',
+      'Discover how to scan QR codes on your PC or Mac without installing any apps. Use a free online QR scanner to decode screenshots or images instantly and privately.',
     keywords: [
       'scan qr code on pc',
       'scan qr code on mac',
       'qr code scanner online',
       'scan qr from screenshot',
-      'scan qr without app'
+      'scan qr without app',
+      'webcam qr scan'
     ],
     content: [
       '## Introduction',
@@ -214,23 +220,23 @@ export const posts: Post[] = [
       '- Or visit the Main Scan Page for all features in one place.  ',
       '',
       'Fast, private, and 100% free — start scanning QR codes now.',
-      '',
-      '/og-default.png'
+      ''
     ].join('\n')
   },
   {
     slug: 'free-online-qr-code-reader',
     title: 'Free Online QR Code Reader',
-    date: '2025/9/26',
+    date: '2025-09-26',
     excerpt: 'Use a free online QR code reader in your browser. Decode QR codes from photos, screenshots, or your webcam — private, secure, no app required.',
     description:
-      'Free online QR code reader in your browser. Decode QR codes from photos, screenshots, or webcam — private, secure, and no app required.',
+      'Use a free online QR code reader in your browser to decode QR codes from photos, screenshots, or your webcam. Enjoy private, secure scanning with no app required.',
     keywords: [
       'free qr code reader',
       'online qr code reader',
       'scan qr from photo',
       'scan qr from screenshot',
-      'qr scanner no app'
+      'qr scanner no app',
+      'browser qr scan'
     ],
     content: [
       '## Introduction',
@@ -300,8 +306,356 @@ export const posts: Post[] = [
       '- Or visit the Main Scan Page for all features in one place.  ',
       '',
       'Fast, private, and 100% free — start scanning QR codes now.',
+      ''
+    ].join('\n')
+  },
+  {
+    slug: 'how-to-scan-a-qr-code-with-your-phone',
+    title: 'How to Scan a QR Code with Your Phone — Step-by-Step',
+    date: '2025-10-05',
+    excerpt: 'Learn how to scan QR codes on iPhone and Android without downloading extra apps. A simple, step-by-step guide for every phone user.',
+    description:
+      'Step-by-step instructions for scanning QR codes using your iPhone or Android phone. Covers camera methods, Google Lens, and tips for scanning from images or screenshots.',
+    keywords: [
+      'scan qr code phone',
+      'scan qr code iphone',
+      'scan qr code android',
+      'scan qr code guide',
+      'qr code tutorial',
+      'google lens qr',
+      'scan qr from image'
+    ],
+    content: [
+      '## Introduction',
       '',
-      '/og-default.png'
+      'Scanning a QR code with your phone is easier than ever — you don’t need to install another app. Modern iPhones and Android phones have built-in scanners right in their camera apps.',
+      '',
+      'Whether you are trying to join Wi-Fi, open a website, or redeem a coupon, here’s how to do it in a few seconds.',
+      '',
+      '---',
+      '',
+      '## How to Scan a QR Code on iPhone',
+      '',
+      '1. Open the Camera app.',
+      '2. Point it steadily at the QR code — you don’t need to press the shutter.',
+      '3. Wait for a small notification banner to appear at the top of the screen.',
+      '4. Tap the banner to open the link or content.',
+      '',
+      '### Pro Tip:',
+      '- If the code doesn’t scan, make sure there’s enough light and your camera lens is clean.',
+      '- For older iPhones (iOS 11 or later), you can also use Control Center → Code Scanner.',
+      '',
+      '---',
+      '',
+      '## How to Scan a QR Code on Android',
+      '',
+      'Most Android phones (Samsung, Google Pixel, OnePlus, Xiaomi, etc.) include QR scanning right inside the camera app.',
+      '',
+      '1. Open your Camera app.',
+      '2. Point it toward the QR code.',
+      '3. Tap the pop-up link that appears on screen.',
+      '',
+      'If your phone camera doesn’t detect it, try Google Lens:',
+      '',
+      '1. Open the Google app.',
+      '2. Tap the Lens icon next to the search bar.',
+      '3. Point your camera at the QR code or upload a saved image.',
+      '',
+      '---',
+      '',
+      '## How to Scan a QR Code from an Image or Screenshot',
+      '',
+      'Sometimes the QR code is already in your gallery — maybe someone sent it to you on WhatsApp or email. You can scan it directly:',
+      '',
+      '- On iPhone: Open the Photos app → tap the QR image → press and hold → choose “Open in Safari”.',
+      '- On Android: Open the Google Photos app → tap the Lens icon → it will recognize the QR automatically.',
+      '',
+      '### Extra Tip — Use Google Lens or Siri Shortcuts',
+      '',
+      'If scanning fails, open Google Lens (Android) or Siri Shortcuts (iPhone) to trigger QR recognition directly without opening the Camera app.',
+      '',
+      '---',
+      '',
+      '## Common Problems and Fixes',
+      '',
+      '- Blurred image? Move the phone closer or farther until focused.',
+      '- Too dark? Turn on flash or increase screen brightness.',
+      '- Doesn’t respond? Check if the QR code is damaged or incomplete.',
+      '- From screen to screen? You can use an online QR reader to scan a code shown on another screen.',
+      '',
+      '---',
+      '',
+      '## Related Topics',
+      '',
+      '- [How to Scan a QR Code on Your Screen](#)',
+      '- [Google Create QR Code](#)',
+      '- [Scan QR Code on PC or Mac Without App](#)',
+      '',
+      '---',
+      '',
+      '## Conclusion',
+      '',
+      'You don’t need extra software to scan QR codes anymore. Both iPhone and Android have built-in scanners — fast, private, and reliable. For special cases, online tools can decode images too.',
+      '',
+      'Stay safe, and double-check URLs before opening unfamiliar links.'
+    ].join('\n')
+  },
+  {
+    slug: 'online-qr-code-reader-vs-app',
+    title: 'Online QR Code Reader vs Mobile App — Which Is Better?',
+    date: '2025-10-05',
+    excerpt: 'Online QR code readers are fast, private, and easy to use — but are they better than mobile apps? This guide compares both options with real-world examples.',
+    description:
+      'Compare online QR code readers and mobile apps: learn which is best for privacy, speed, and convenience when scanning QR codes. Includes tips for secure, instant scanning.',
+    keywords: [
+      'online qr code reader',
+      'qr code app',
+      'scan qr code with phone',
+      'qr code privacy',
+      'qr code security',
+      'qr code comparison',
+      'browser qr scan'
+    ],
+    content: [
+      '## Introduction',
+      '',
+      'When you need to scan a QR code, you have two main choices: use an online QR code reader or a mobile app. Both work, but they differ in speed, privacy, and convenience.',
+      '',
+      'If you’ve ever searched “how do I scan a QR code with my phone” or tried to pick between online tools and apps, this guide will help you decide which fits your daily use best.',
+      '',
+      '---',
+      '',
+      '## 1. Convenience — Online Readers Win for Instant Access',
+      '',
+      'An online QR code reader opens directly in your browser — no download, no setup, no updates.',
+      '',
+      '- Works on any device: iPhone, Android, PC, or Mac.',
+      '- Perfect for quick scans, especially from screenshots or images.',
+      '- You can even use your webcam to scan printed codes.',
+      '',
+      'Apps, on the other hand, need installation, updates, and permissions. They’re good for heavy users, but not ideal for quick one-time scans.',
+      '',
+      '---',
+      '',
+      '## 2. Privacy — Online Tools Offer Better Control',
+      '',
+      'Online QR scanners like ours decode everything locally in your browser, so no image is uploaded to a server.',
+      '',
+      'Mobile apps may request access to your camera, files, or even location. Some include ads or tracking scripts.',
+      '',
+      'If privacy is a priority, use a browser-based QR code reader — fast, zero data collection, and secure.',
+      '',
+      '---',
+      '',
+      '## 3. Speed & Performance — Apps Are Slightly Faster for Frequent Scans',
+      '',
+      'Dedicated mobile apps are optimized for camera performance and can scan multiple codes in succession.',
+      '',
+      'If you’re scanning dozens of codes per day (like inventory or events), an app makes sense.',
+      '',
+      'For everyone else, an online QR reader is just as fast for single scans.',
+      '',
+      '---',
+      '',
+      '## 4. Versatility — Online Readers Handle More Formats Than You Think',
+      '',
+      'You can scan:',
+      '- Codes on your screen',
+      '- Uploaded photos or screenshots',
+      '- Printed QR codes using your webcam',
+      '',
+      'Apps may support extra features like saving history or batch scanning — useful, but often behind paywalls.',
+      '',
+      '---',
+      '',
+      '## 5. Security — Online Readers Have Lower Risk of Malware',
+      '',
+      'Browser-based tools cannot install anything on your device. That’s a major advantage over unverified apps from app stores.',
+      '',
+      'Always double-check that your QR tool runs under HTTPS and doesn’t request unnecessary permissions.',
+      '',
+      '### Bonus Tip — Choosing the Right Tool for Your Needs',
+      'When deciding between online QR readers and mobile apps, think about how often you scan codes, your privacy comfort level, and whether you need offline access.  ',
+      'For most users, an online reader covers 95% of use cases without installation or ads.',
+      '',
+      '---',
+      '',
+      '### 6. Real-World Use Cases — When Each Option Shines',
+      '',
+      'Online readers are great for quick actions like scanning menus, event tickets, or Wi-Fi codes. Mobile apps shine in scenarios like warehouse inventory or repetitive business use.',
+      '',
+      'Both have their place — it depends on how often and where you scan.',
+      '',
+      '---',
+      '',
+      '## Conclusion — Which Should You Use?',
+      '',
+      'If you just need to scan a QR code occasionally, an online QR code reader is the better choice — it’s fast, private, and works everywhere.',
+      '',
+      'If you’re scanning codes daily, a trusted mobile app might be more efficient for batch use.',
+      '',
+      'The ideal setup: keep an online tool bookmarked for quick scans, and one verified app installed for frequent use.',
+      '',
+      '---',
+      '',
+      '## Try It Yourself',
+      '',
+      'Head to our [Main Scan Page](/scan) and try uploading or scanning live with your camera — no app, no signup, no ads.',
+      ''
+    ].join('\n')
+  },
+  {
+    slug: 'how-to-create-qr-code-free',
+    title: 'How to Create a QR Code for Free (Step-by-Step Guide)',
+    date: '2025-10-05',
+    excerpt: 'Learn how to create a QR code for free using online tools — no design skills or software needed. Perfect for links, Wi-Fi, business cards, or events.',
+    description:
+      'A simple step-by-step tutorial showing how to create QR codes for websites, Wi-Fi, business cards, and events. 100% free, online, and secure — no app required.',
+    keywords: [
+      'create qr code free',
+      'free qr code generator',
+      'make qr code online',
+      'qr code for business card',
+      'wifi qr code generator',
+      'custom qr code'
+    ],
+    content: [
+      '## Introduction',
+      '',
+      'QR codes are everywhere — from menus and event tickets to websites and Wi-Fi logins. The good news is you can create one for free without needing design or coding skills.',
+      '',
+      'This guide walks you through how to create a QR code step by step using a free online tool.',
+      '',
+      '---',
+      '',
+      '## Step 1 — Choose What You Want the QR Code to Do',
+      '',
+      'Before creating your QR code, decide its purpose:',
+      '',
+      '- Website or link: Send visitors directly to a webpage.',
+      '- Wi-Fi network: Let guests connect without typing passwords.',
+      '- Business card: Share your contact info in a scan.',
+      '- Text message or email: Trigger an SMS or email on scan.',
+      '',
+      '---',
+      '',
+      '## Step 2 — Visit a Free QR Code Generator',
+      '',
+      'Go to our [QR Code Generator](/create). It’s 100% free and doesn’t require signups or downloads.',
+      '',
+      '1. Select your QR code type (URL, Wi-Fi, contact, etc.).',
+      '2. Enter the details (e.g., link, SSID, or text).',
+      '3. Click Generate QR Code.',
+      '',
+      'You’ll see your code appear instantly.',
+      '',
+      '---',
+      '',
+      '## Step 3 — Customize Your QR Code (Optional)',
+      '',
+      'You can personalize your QR code by changing:',
+      '',
+      '**Color** — choose a theme that matches your brand.',
+      '**Size** — increase resolution for printing.',
+      '**Design** — some tools let you round corners or add logos.',
+      '',
+      'Keep contrast high — dark code on a light background for better scanning.',
+      '',
+      '---',
+      '',
+      '## Step 4 — Download and Test the Code',
+      '',
+      '1. Click Download to save it as PNG or SVG.',
+      '2. Open your phone camera or use our [Online QR Code Reader](/blog/free-online-qr-code-reader) to test it.',
+      '',
+      'Always verify it works before printing or sharing.',
+      '',
+      '---',
+      '',
+      '## Step 5 — Use It Anywhere',
+      '',
+      'You can now place your QR code on:',
+      '',
+      '- Posters or flyers',
+      '- Business cards',
+      '- Product packaging',
+      '- Social media posts',
+      '',
+      'The best part? You can generate unlimited free codes anytime.',
+      '',
+      '### Creative Uses for QR Codes',
+      '',
+      'You can use QR codes for creative marketing, classroom materials, or event tickets. They help bridge offline and online experiences easily.',
+      '',
+      '### Quick Tips for Better Results',
+      '',
+      'Always test your QR code on multiple devices, ensure clear contrast, and avoid overly complex designs for better readability.',
+      '',
+      '---',
+      '',
+      '## FAQ',
+      '',
+      'Q1: Is creating a QR code really free?',
+      'A: Yes. Our generator doesn’t require payment or account creation.',
+      '',
+      'Q2: Can I create a QR code for Wi-Fi?',
+      'A: Yes, just select “Wi-Fi” type and enter your network details.',
+      '',
+      'Q3: Does my QR code expire?',
+      'A: No. Once created, your static QR code will work forever.',
+      '',
+      '---',
+      '',
+      '## Conclusion',
+      '',
+      'Creating a free QR code takes less than a minute. Whether for a website, Wi-Fi, or business card, online tools make it simple, fast, and completely free.',
+      '',
+      'Start now with our [Free QR Code Generator](/create) — no sign-up, no limits.'
     ].join('\n')
   }
 ];
+
+// --- Helpers & exports for sorting and pagination ---
+
+// Robust date parser (supports ISO and yyyy/mm/dd)
+const toTimestamp = (d: string): number => {
+  // Normalize possible yyyy/mm/dd into yyyy-mm-dd for Date.parse
+  const normalized = d.replace(/\//g, '-');
+  const t = Date.parse(normalized);
+  return Number.isNaN(t) ? 0 : t;
+};
+
+/** Return posts sorted by date desc (newest first). */
+export function getSortedPosts(): Post[] {
+  // clone to avoid mutating original array
+  return [...posts].sort((a, b) => toTimestamp(b.date) - toTimestamp(a.date));
+}
+
+/** Get a specific page of posts (1-based page index). */
+export function getPostsPage(page: number, pageSize: number): {
+  items: Post[];
+  totalPages: number;
+  page: number;
+} {
+  const sorted = getSortedPosts();
+  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
+  const safePage = Math.min(Math.max(1, page), totalPages);
+  const start = (safePage - 1) * pageSize;
+  return {
+    items: sorted.slice(start, start + pageSize),
+    totalPages,
+    page: safePage,
+  };
+}
+
+/** Convenience: find a post by slug. */
+export function getPostBySlug(slug: string): Post | undefined {
+  return posts.find((p) => p.slug === slug);
+}
+// --- default bundle export ---
+export default {
+  posts,
+  getSortedPosts,
+  getPostsPage,
+  getPostBySlug,
+};
