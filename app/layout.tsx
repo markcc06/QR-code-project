@@ -1,15 +1,11 @@
-declare global {
-  interface Window {
-    cookieyes?: unknown;
-  }
-}
-import React, { Suspense } from 'react';
 import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import { Navbar } from '@/components/Navbar';
-import FabFeedback from '@/components/Feedback/FabFeedback';
 import Script from 'next/script';
+import dynamic from 'next/dynamic';
+import { Suspense } from 'react';
+
+const RootLayoutClient = dynamic(() => import('./RootLayoutClient'));
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -17,10 +13,10 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://www.scanqrly.xyz'),
   title: {
     default: 'Free Online QR Scanner — Scan QR from Image or Camera',
-    template: '%s | ScanQRly'
+    template: '%s | ScanQRly',
   },
-  description: 'Free online QR code scanner to decode codes from camera or image upload. 100% free, private, and secure. Works on PC, Mac, and mobile browsers — no app required.',
-  // removed keywords: deprecated for SEO
+  description:
+    'Free online QR code scanner to decode codes from camera or image upload. 100% free, private, and secure. Works on PC, Mac, and mobile browsers — no app required.',
   icons: {
     icon: '/favicon.ico',
     shortcut: '/favicon.ico',
@@ -31,7 +27,8 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: 'Free Online QR Scanner — Scan QR from Image or Camera',
-    description: 'Scan QR codes instantly using your camera or upload images. All processing happens locally in your browser — privacy-first, no data leaves your device.',
+    description:
+      'Scan QR codes instantly using your camera or upload images. All processing happens locally in your browser — privacy-first, no data leaves your device.',
     url: 'https://www.scanqrly.xyz',
     siteName: 'ScanQRly',
     images: [
@@ -50,7 +47,8 @@ export const metadata: Metadata = {
     site: '@scanqrly',
     creator: '@scanqrly',
     title: 'Free Online QR Scanner — Scan QR from Image or Camera',
-    description: 'Free, fast, and privacy-first online QR code reader. Works with camera or image upload, directly in your browser.',
+    description:
+      'Free, fast, and privacy-first online QR code reader. Works with camera or image upload, directly in your browser.',
     images: ['/og-image.png'],
   },
   robots: {
@@ -62,20 +60,30 @@ export const metadata: Metadata = {
 
 const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_ID;
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    // language set to English for international audience
     <html lang="en">
       <head>
+        {/* ✅ AdSense Verification */}
         <meta name="google-adsense-account" content="ca-pub-6728061725805697" />
+
+        {/* ✅ Google Consent Mode default (deny until accept) */}
+        <Script id="consent-default" strategy="beforeInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('consent', 'default', {
+              ad_storage: 'denied',
+              analytics_storage: 'denied',
+              ad_user_data: 'denied',
+              ad_personalization: 'denied'
+            });
+          `}
+        </Script>
+
+        {/* ✅ Google Analytics (GA4) */}
         {GA_MEASUREMENT_ID && (
           <>
-            {/* Load GA4 gtag script after the page is interactive */}
             <Script
               id="gtag-js"
               strategy="afterInteractive"
@@ -89,43 +97,39 @@ export default function RootLayout({
                 gtag('config', '${GA_MEASUREMENT_ID}', { send_page_view: true });
               `}
             </Script>
-            {/* ✅ Google AdSense Verification Script */}
-            <Script
-              id="adsense-init"
-              async
-              strategy="afterInteractive"
-              src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6728061725805697"
-              crossOrigin="anonymous"
-            />
           </>
         )}
+
+        {/* ✅ Google AdSense */}
+        <Script
+          id="adsense-init"
+          async
+          strategy="afterInteractive"
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6728061725805697"
+          crossOrigin="anonymous"
+        />
+
+        {/* ✅ JSON-LD Structured Data */}
         <Script
           id="structured-data"
           type="application/ld+json"
           strategy="afterInteractive"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "WebSite",
-              "url": "https://www.scanqrly.xyz",
-              "name": "ScanQRly",
+              '@context': 'https://schema.org',
+              '@type': 'WebSite',
+              url: 'https://www.scanqrly.xyz',
+              name: 'ScanQRly',
             }),
           }}
         />
       </head>
-      <body className={inter.className}>
-        <Suspense fallback={null}>
-          <Navbar />
-          {children}
-          <FabFeedback />
-        </Suspense>
 
-        {/* ✅ CookieYes Banner Script */}
-        <Script
-          id="cookieyes-banner"
-          strategy="afterInteractive"
-          src="https://cdn-cookieyes.com/client_data/62ed42118afa099ca8f3428f/script.js"
-        />
+      {/* ✅ Main Body */}
+      <body className={inter.className} suppressHydrationWarning>
+        <Suspense fallback={null}>
+          <RootLayoutClient>{children}</RootLayoutClient>
+        </Suspense>
       </body>
     </html>
   );

@@ -24,14 +24,13 @@ export default function AdSlot({
   enabled = undefined,
 }: AdSlotProps) {
   // 统一决定是否渲染广告（props 优先，然后看环境变量；开发环境时需显式开启）
-  const shouldEnable =
-    (enabled ?? ENV_ENABLED) &&
-    (process.env.NODE_ENV === "production" || process.env.NODE_ENV === "development");
+  const shouldEnable = true; // 强制启用广告测试
 
   const id = useId();
 
   // hooks 必须无条件调用；在 effect 内做条件判断
   useEffect(() => {
+    console.log("AdSlot initializing with:", { shouldEnable, ADS_CLIENT, ADS_SLOT });
     if (!shouldEnable) return;         // 没开广告 → 不做任何事
     if (!ADS_CLIENT || !ADS_SLOT) return; // 未配置客户端/slot → 不做任何事
 
@@ -62,16 +61,30 @@ export default function AdSlot({
     rectangle: "h-48 w-80",
   };
 
+  console.log("AdSlot rendered");
+
   return (
-    <div className={cn("w-full", sizeClasses[size], className)} id={id}>
+    <div
+      className={cn(
+        "my-8 flex justify-center items-center border border-dashed border-gray-400 rounded-md p-4 bg-gray-50",
+        sizeClasses[size],
+        className
+      )}
+      id={id}
+    >
       <ins
-        className="adsbygoogle block"
-        style={{ display: "block" }}
+        className="adsbygoogle block w-full"
+        style={{ display: "block", minHeight: "120px" }}
         data-ad-client={ADS_CLIENT}
         data-ad-slot={ADS_SLOT}
-        data-ad-format={size === "banner" ? "auto" : "rectangle"}
+        data-ad-format="auto"
         data-full-width-responsive="true"
       />
+      <noscript>
+        <p style={{ color: '#666', fontSize: '14px', textAlign: 'center' }}>
+          Google Ads placeholder — enable JavaScript to view ads.
+        </p>
+      </noscript>
     </div>
   );
 }

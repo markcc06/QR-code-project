@@ -40,8 +40,7 @@ export default function Home() {
 
       {/* Ad Placeholder */}
       <div className="mb-12">
-        {/* Render ads only in production and on the client to avoid dev/extension fetch errors */}
-        {process.env.NODE_ENV === 'production' ? <AdSlot /> : null}
+        <AdSlot />
       </div>
 
       {/* Features */}
